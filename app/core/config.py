@@ -10,8 +10,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 class Settings(BaseSettings):
     # Kafka settings
     kafka_bootstrap_servers: str
-    kafka_input_topic: str
-    kafka_output_topic: str
+    kafka_input_topic: str = "inference_results"
+    kafka_output_topic: str = "performance-feedback" 
     kafka_group_id: str
 
     # redis / dragonfly settings
