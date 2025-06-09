@@ -1,0 +1,13 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# IDE files
+.vscode/
+.idea/
+
+# test files
+tests/logs
+tests/test_results
+
+logs/

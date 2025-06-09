@@ -1,0 +1,16 @@
+# requirements.txt
+fastapi
+uvicorn
+confluent_kafka
+redis
+pydantic
+pydantic-settings
+pytest
+pytest-asyncio
+docutils
+protobuf
+mock
+numpy
+aiofiles
+
+google-generativeai

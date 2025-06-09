@@ -1,0 +1,190 @@
+{
+  "exercise_name": "dumbbell-arm",
+  "dominant_side_points": [
+    "wrist",
+    "wrist"
+  ],
+  "landmark_features_dict": {
+    "left": [
+      "shoulder",
+      "elbow",
+      "wrist"
+    ],
+    "right": [
+      "shoulder",
+      "elbow",
+      "wrist"
+    ],
+    "nose": [
+      "nose"
+    ]
+  },
+  "angles": [
+    {
+      "name": "elbow_angle",
+      "point1": "shoulder",
+      "point2": "wrist",
+      "ref_point": "elbow"
+    },
+    {
+      "name": "shoulder_angle",
+      "point1": "shoulder",
+      "point2": "elbow",
+      "vertical": true,
+      "direction": "down"
+    },
+    {
+      "name": "offset_angle",
+      "point1": "left_shoulder",
+      "point2": "right_shoulder",
+      "ref_point": "nose"
+    }
+  ],
+  "state_machine": {
+    "beginner": {
+      "states": [
+        {
+          "id": "s1",
+          "name": "Начальное положение",
+          "condition": "elbow_angle > 110"
+        },
+        {
+          "id": "s2",
+          "name": "Подъем",
+          "condition": "elbow_angle <= 110 and elbow_angle > 70"
+        },
+        {
+          "id": "s3",
+          "name": "Опускание",
+          "condition": "elbow_angle <= 70"
+        }
+      ],
+      "success_sequence": [
+        "s1",
+        "s2",
+        "s3",
+        "s1"
+      ]
+    },
+    "pro": {
+      "states": [
+        {
+          "id": "s1",
+          "name": "Начальное положение",
+          "condition": "elbow_angle > 110"
+        },
+        {
+          "id": "s2",
+          "name": "Подъем",
+          "condition": "elbow_angle <= 110 and elbow_angle > 60"
+        },
+        {
+          "id": "s3",
+          "name": "Опускание",
+          "condition": "elbow_angle <= 60"
+        }
+      ],
+      "success_sequence": [
+        "s1",
+        "s2",
+        "s3",
+        "s1"
+      ]
+    }
+  },
+  "thresholds": {
+    "beginner": {
+      "angle_thresh": {
+        "elbow_angle": [
+          {
+            "min": 50,
+            "max": null,
+            "feedback": "lower_wrist",
+            "critical": false
+          },
+          {
+            "min": null,
+            "max": 60,
+            "feedback": "raise_wrist",
+            "critical": false
+          }
+        ],
+        "shoulder_angle": [
+          {
+            "min": 12,
+            "max": 35,
+            "feedback": "keep_hand_near",
+            "critical": false
+          },
+          {
+            "min": null,
+            "max": 40,
+            "feedback": "hand_too_far",
+            "critical": true
+          }
+        ]
+      },
+      "OFFSET_THRESH": 45.0,
+      "INACTIVE_THRESH": 25.0,
+      "CNT_FRAME_THRESH": 0
+    },
+    "pro": {
+      "angle_thresh": {
+        "elbow_angle": [
+          {
+            "min": 50,
+            "max": null,
+            "feedback": "lower_wrist",
+            "critical": false
+          },
+          {
+            "min": null,
+            "max": 60,
+            "feedback": "raise_wrist",
+            "critical": false
+          }
+        ],
+        "shoulder_angle": [
+          {
+            "min": 12,
+            "max": 20,
+            "feedback": "keep_hand_near",
+            "critical": false
+          },
+          {
+            "min": null,
+            "max": 25,
+            "feedback": "hand_too_far",
+            "critical": true
+          }
+        ]
+      },
+      "OFFSET_THRESH": 45.0,
+      "INACTIVE_THRESH": 15.0,
+      "CNT_FRAME_THRESH": 50
+    }
+  },
+  "feedback_messages": [
+    {
+      "id": "lower_wrist",
+      "message": "LOWER YOUR WRIST",
+      "severity": "warning"
+    },
+    {
+      "id": "raise_wrist",
+      "message": "HIGHER YOUR WRIST",
+      "severity": "warning"
+    },
+    {
+      "id": "keep_hand_near",
+      "message": "KEEP YOUR HAND NEAR THE BODY",
+      "severity": "warning"
+    },
+    {
+      "id": "hand_too_far",
+      "message": "HAND TOO FAR FROM BODY",
+      "severity": "critical"
+    }
+  ],
+  "inactivity_time": 5
+}

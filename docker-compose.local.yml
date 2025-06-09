@@ -1,0 +1,30 @@
+# docker-compose.local.yml
+
+services:
+  redis:
+    container_name: tisit-performance-redis
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # cv-performance-service:
+  #   build:
+  #     context: .
+  #     dockerfile: app/Dockerfile
+  #   container_name: tisit-cv-performance-service
+  #   environment:
+  #     - KAFKA_BOOTSTRAP_SERVERS=tisit-cv-kafka:29092
+  #     - KAFKA_INPUT_TOPIC=${KAFKA_INPUT_TOPIC}
+  #     - KAFKA_OUTPUT_TOPIC=${KAFKA_OUTPUT_TOPIC}
+  #     - KAFKA_GROUP_ID=${KAFKA_GROUP_ID}
+  #     - REDIS_URL=redis://redis:6379/0
+  #     - APP_LOG_LEVEL=${APP_LOG_LEVEL}
+  #   volumes:
+  #     - ./logs:/app/logs
+  #   depends_on:
+  #     - redis
+
+volumes:
+  redis_data:
