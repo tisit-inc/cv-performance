@@ -42,7 +42,7 @@ class UniversalQualityProcessor:
 
     def create_universal_pipeline(self):
         """Создание универсального pipeline для любого упражнения"""
-        self.logger.info("🚀 Creating universal exercise quality pipeline...")
+        self.logger.info("Creating universal exercise quality pipeline")
         
         sdf = self.app.dataframe(self.input_topic)
         
@@ -87,10 +87,10 @@ class UniversalQualityProcessor:
                 # Try to parse as string
                 data = json.loads(str(message))
             
-            self.logger.debug(f"📥 Universal parser - frame: {data.get('frame_track_uuid', 'unknown')}")
+            self.logger.debug("Universal parser - frame: %s", data.get('frame_track_uuid', 'unknown'))
             return data
         except Exception as e:
-            self.logger.error(f"❌ Parse error: {e}, message type: {type(message)}")
+            self.logger.error("Parse error: %s, message type: %s", e, type(message))
             return None
 
     def _analyze_exercise_universal(self, frame: Dict[str, Any], state: Dict[str, Any]) -> Dict[str, Any]:
@@ -124,10 +124,10 @@ class UniversalQualityProcessor:
                     # Пытаемся загрузить новую версию конфигурации
                     config_path = f"{exercise_name}-v2.json"
                     session_state['exercise_config'] = self.metrics_storage.get_metrics_for_exercise_v2(config_path)
-                    self.logger.info(f"✅ Loaded v2.0 config for {exercise_name}")
+                    self.logger.info("Loaded v2.0 config for %s", exercise_name)
                 except:
                     # Fallback на старую конфигурацию если v2 не найдена
-                    self.logger.warning(f"⚠️ v2.0 config not found for {exercise_name}, using legacy")
+                    self.logger.warning("v2.0 config not found for %s, using legacy", exercise_name)
                     session_state['exercise_config'] = self.metrics_storage.get_metrics_for_exercise(exercise_name)
                 
                 # Сохраняем обновленное состояние
@@ -155,13 +155,14 @@ class UniversalQualityProcessor:
                 'level': session_state['level']
             }
             
-            self.logger.debug(f"🎯 Universal FSM - {exercise_name}: {fsm_context['current_state']} "
-                            f"({fsm_context['exercise_phase']}) duration: {fsm_context['state_duration']:.1f}s")
+            self.logger.debug("Universal FSM - %s: %s (%s) duration: %.1fs", 
+                            exercise_name, fsm_context['current_state'], 
+                            fsm_context['exercise_phase'], fsm_context['state_duration'])
             
             return frame
             
         except Exception as e:
-            self.logger.error(f"❌ Universal analysis error: {e}")
+            self.logger.error("Universal analysis error: %s", e)
             frame['exercise_context'] = {'error': str(e)}
             return frame
 
@@ -225,7 +226,7 @@ class UniversalQualityProcessor:
                 if self._evaluate_condition_safe(condition, angles):
                     return state["id"]
             except Exception as e:
-                self.logger.warning(f"⚠️ State evaluation error for '{condition}': {e}")
+                self.logger.warning("State evaluation error for '%s': %s", condition, e)
                 continue
         
         return "s1"  # Дефолтное состояние
@@ -236,7 +237,7 @@ class UniversalQualityProcessor:
             # Ограниченный контекст для eval
             safe_dict = {k: v for k, v in angles.items() if isinstance(v, (int, float))}
             return eval(condition, {"__builtins__": {}}, safe_dict)
-        except:
+        except Exception:
             return False
 
     def _determine_exercise_phase_universal(self, current_state: str, states: List[Dict]) -> str:
@@ -270,10 +271,10 @@ class UniversalQualityProcessor:
             
             frame['semantic_error_codes'] = error_codes
             
-            self.logger.debug(f"🔍 Generated {len(error_codes)} semantic codes for {exercise_name}")
+            self.logger.debug("Generated %d semantic codes for %s", len(error_codes), exercise_name)
             
         except Exception as e:
-            self.logger.error(f"❌ Semantic code generation error: {e}")
+            self.logger.error("Semantic code generation error: %s", e)
             frame['semantic_error_codes'] = []
         
         return frame
@@ -523,7 +524,7 @@ class UniversalQualityProcessor:
     def _process_legacy_thresholds(self, frame: Dict[str, Any], context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Fallback обработка для старых конфигураций"""
         # Здесь можно реализовать совместимость со старыми форматами
-        self.logger.info("📱 Processing legacy threshold format")
+        self.logger.info("Processing legacy threshold format")
         return []
 
     def _load_exercise_config_from_context(self, context: Dict[str, Any]) -> Optional[Dict]:
@@ -536,7 +537,7 @@ class UniversalQualityProcessor:
             # Попытка загрузки v2.0 конфигурации
             config_path = f"{exercise_name}-v2.json"
             return self.metrics_storage.get_metrics_for_exercise_v2(config_path)
-        except:
+        except Exception:
             return None
 
     def _init_semantic_state(self, value: Any) -> Dict[str, Any]:
@@ -620,7 +621,7 @@ class UniversalQualityProcessor:
                 if code not in window_state['coaching_categories']['execution_problems']:
                     window_state['coaching_categories']['execution_problems'].append(code)
         
-        self.logger.debug(f"📊 Semantic aggregation - patterns: {len(window_state['semantic_patterns'])}")
+        self.logger.debug("Semantic aggregation - patterns: %d", len(window_state['semantic_patterns']))
         
         return window_state
 
@@ -629,13 +630,13 @@ class UniversalQualityProcessor:
         """Семантический анализ для coaching"""
         
         # Debug window structure
-        self.logger.debug(f"🔍 Window result keys: {list(window_result.keys())}")
+        self.logger.debug("Window result keys: %s", list(window_result.keys()))
         
         # Extract data from window result value
         window_data = window_result.get('value', window_result)
         session_uuid = window_data.get('session_uuid')
         if not session_uuid:
-            self.logger.error(f"❌ No session_uuid in window data: {window_data}")
+            self.logger.error("No session_uuid in window data: %s", window_data)
             return window_result
         
         # Инициализация истории сессии
@@ -681,9 +682,8 @@ class UniversalQualityProcessor:
             'timestamp': datetime.now().isoformat()
         }
         
-        self.logger.info(f"🧠 Semantic coaching - Session: {session_uuid}, "
-                        f"Patterns: {len(window_data.get('semantic_patterns', {}))}, "
-                        f"Coaching: {requires_coaching}")
+        self.logger.info("Semantic coaching - Session: %s, Patterns: %d, Coaching: %s", 
+                        session_uuid, len(window_data.get('semantic_patterns', {})), requires_coaching)
         
         return result
 
@@ -761,9 +761,9 @@ class UniversalQualityProcessor:
             }
         }
         
-        self.logger.debug(f"🤖 LLM input prepared - Focus areas: "
-                         f"Safety: {len(llm_input['coaching_focus_areas']['safety_priorities'])}, "
-                         f"Technical: {len(llm_input['coaching_focus_areas']['technique_improvements'])}")
+        self.logger.debug("LLM input prepared - Focus areas: Safety: %d, Technical: %d", 
+                         len(llm_input['coaching_focus_areas']['safety_priorities']), 
+                         len(llm_input['coaching_focus_areas']['technique_improvements']))
         
         return llm_input
 
@@ -797,16 +797,16 @@ class UniversalQualityProcessor:
 
     def run(self):
         """Запуск универсального процессора"""
-        self.logger.info("🚀 Starting Universal Quality Assessment Processor...")
+        self.logger.info("Starting Universal Quality Assessment Processor")
         
         try:
             sdf = self.create_universal_pipeline()
             self.app.run(sdf)
             
         except KeyboardInterrupt:
-            self.logger.info("🛑 Universal processor stopped by user")
+            self.logger.info("Universal processor stopped by user")
         except Exception as e:
-            self.logger.error(f"💥 Universal processor error: {e}", exc_info=True)
+            self.logger.error("Universal processor error: %s", e, exc_info=True)
             raise
 
 

@@ -17,8 +17,8 @@
   
   "angle_definitions": [
     {
-      "name": "arm_angle",
-      "description": "Primary pushing angle for exercise progression",
+      "name": "elbow_angle",
+      "description": "Primary arm angle for push-up progression tracking",
       "calculation": {
         "point1": "shoulder",
         "point2": "wrist",
@@ -28,26 +28,26 @@
       "semantic_importance": "primary"
     },
     {
-      "name": "back_angle",
-      "description": "Core stability and body alignment angle",
+      "name": "shoulder_angle",
+      "description": "Shoulder positioning and movement pattern",
       "calculation": {
-        "point1": "shoulder",
-        "point2": "hip",
-        "type": "vertical",
-        "direction": "down"
-      },
-      "semantic_importance": "safety_critical"
-    },
-    {
-      "name": "offset_angle",
-      "description": "Lateral body stability monitoring",
-      "calculation": {
-        "point1": "left_shoulder", 
-        "point2": "right_shoulder",
-        "ref_point": "nose",
+        "point1": "hip",
+        "point2": "elbow",
+        "ref_point": "shoulder",
         "type": "standard"
       },
-      "semantic_importance": "safety_critical"
+      "semantic_importance": "secondary"
+    },
+    {
+      "name": "body_angle",
+      "description": "Core stability and body line maintenance",
+      "calculation": {
+        "point1": "shoulder",
+        "point2": "knee",
+        "ref_point": "hip",
+        "type": "standard"
+      },
+      "semantic_importance": "form_critical"
     }
   ],
   
@@ -58,7 +58,7 @@
           "id": "s1",
           "name": "up_position",
           "description": "Arms extended, body in plank position",
-          "condition": "arm_angle > 160",
+          "condition": "elbow_angle > 160",
           "exercise_phase": "isometric_hold",
           "coaching_focus": "stability"
         },
@@ -66,7 +66,7 @@
           "id": "s2",
           "name": "descending_phase", 
           "description": "Controlled descent towards ground",
-          "condition": "arm_angle <= 160 and arm_angle > 90",
+          "condition": "elbow_angle <= 160 and elbow_angle > 90",
           "exercise_phase": "eccentric",
           "coaching_focus": "control"
         },
@@ -74,7 +74,7 @@
           "id": "s3",
           "name": "bottom_position",
           "description": "Lowest position with chest near ground",
-          "condition": "arm_angle <= 90",
+          "condition": "elbow_angle <= 90",
           "exercise_phase": "transition",
           "coaching_focus": "range_depth"
         }
@@ -85,35 +85,37 @@
   
   "error_taxonomy": {
     "safety_violations": {
-      "spinal_alignment": {
-        "code_prefix": "SAFETY_SPINE",
-        "description": "Spinal alignment and core stability issues",
+      "body_alignment": {
+        "code_prefix": "SAFETY_BODY_ALIGNMENT",
+        "description": "Core stability and body line maintenance for injury prevention",
         "states_applicable": ["all"],
         "immediate_intervention": true,
         "coaching_priority": "critical",
         "semantic_category": "safety_concern",
         "detection": {
-          "angle": "back_angle",
-          "threshold_type": "deviation_from_straight",
+          "angle": "body_angle",
+          "threshold_type": "range_safety",
+          "safe_range": [160, 200],
           "severity_levels": {
-            "warning": {"threshold": 15, "priority": "high"},
-            "critical": {"threshold": 25, "priority": "immediate"}
+            "critical": {"range": [0, 140], "priority": "immediate"},
+            "major": {"range": [140, 160], "priority": "high"}
           }
         }
       },
       
-      "lateral_instability": {
-        "code_prefix": "SAFETY_LATERAL",
-        "description": "Side-to-side balance and stability",
-        "states_applicable": ["all"],
+      "arm_overextension": {
+        "code_prefix": "SAFETY_ARM_OVEREXTENSION", 
+        "description": "Dangerous arm overextension that could stress joints",
+        "states_applicable": ["s1"],
         "immediate_intervention": false,
         "coaching_priority": "high",
         "semantic_category": "safety_concern",
         "detection": {
-          "angle": "offset_angle",
+          "angle": "elbow_angle",
+          "threshold_type": "range_safety",
+          "safe_range": [160, 190],
           "severity_levels": {
-            "minor": {"threshold": 20, "priority": "medium"},
-            "major": {"threshold": 35, "priority": "high"}
+            "major": {"range": [190, 200], "priority": "high"}
           }
         }
       }
@@ -128,8 +130,8 @@
         "semantic_category": "technical_issue",
         "state_specific_detection": {
           "s2": {
-            "angle": "arm_angle",
-            "description": "Descent control and range",
+            "angle": "elbow_angle",
+            "description": "Descent control and range during lowering phase",
             "optimal_range": [90, 160],
             "severity_levels": {
               "shallow": {"range": [120, 160], "priority": "high", "code_suffix": "INSUFFICIENT_DEPTH"},
@@ -137,7 +139,7 @@
             }
           },
           "s3": {
-            "angle": "arm_angle",
+            "angle": "elbow_angle",
             "description": "Bottom position depth achievement",
             "optimal_range": [75, 90],
             "severity_levels": {
@@ -156,14 +158,28 @@
         "coaching_priority": "medium",
         "semantic_category": "form_deviation",
         "detection": {
-          "angle": "back_angle",
+          "angle": "body_angle",
           "description": "Body line straightness and core activation",
           "state_specific_thresholds": {
             "s1": {
-              "optimal_range": [170, 185],
+              "optimal_range": [170, 190],
               "severity_levels": {
                 "sagging": {"range": [150, 170], "priority": "high", "code_suffix": "SAGGING_HIPS"},
-                "piking": {"range": [185, 200], "priority": "medium", "code_suffix": "ELEVATED_HIPS"}
+                "piking": {"range": [190, 210], "priority": "medium", "code_suffix": "ELEVATED_HIPS"}
+              }
+            },
+            "s2": {
+              "optimal_range": [170, 190],
+              "severity_levels": {
+                "sagging": {"range": [150, 170], "priority": "high", "code_suffix": "SAGGING_HIPS"},
+                "piking": {"range": [190, 210], "priority": "medium", "code_suffix": "ELEVATED_HIPS"}
+              }
+            },
+            "s3": {
+              "optimal_range": [170, 190],
+              "severity_levels": {
+                "sagging": {"range": [150, 170], "priority": "high", "code_suffix": "SAGGING_HIPS"},
+                "piking": {"range": [190, 210], "priority": "medium", "code_suffix": "ELEVATED_HIPS"}
               }
             }
           }
