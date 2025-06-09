@@ -1,5 +1,6 @@
 # requirements.txt
 fastapi
+python-multipart
 uvicorn
 pydantic
 pydantic-settings
@@ -13,3 +14,5 @@ aiofiles
 
 google-generativeai
 quixstreams
+uvloop==0.21.0
+google-genai==1.19.0

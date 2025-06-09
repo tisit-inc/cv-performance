@@ -20,9 +20,10 @@ from app.utils.logger import setup_logger
 async def startup_tasks():
     """Initialize application components"""
     app.include_router(health_router)
-    
+
     # Note: Topic management is now handled by Quix Streams internally
-    logger.info("Using Quix Streams for topic management - no manual topic creation needed")
+    logger.info(
+        "Using Quix Streams for topic management - no manual topic creation needed")
 
 
 @asynccontextmanager
@@ -36,11 +37,11 @@ async def lifespan(app: FastAPI):
 
     # Execute startup tasks
     await startup_tasks()
-    
+
     logger.info("API Server component initialized")
-    
+
     yield
-    
+
     logger.info("API Server component shutdown")
 
 
@@ -62,9 +63,9 @@ class AppMeta:
 meta = AppMeta()
 
 app = FastAPI(
-    docs_url=None, 
-    openapi_url=None, 
-    redoc_url=None, 
+    docs_url=None,
+    openapi_url=None,
+    redoc_url=None,
     lifespan=lifespan,
     title=meta.title,
     version=settings.RELEASE_VER
@@ -91,12 +92,13 @@ async def exception_callback(request: Request, exc: Exception):
     if hasattr(exc, 'exceptions') and hasattr(exc, '__iter__'):
         exc = exc.exceptions[0] if exc.exceptions else exc
 
-    logger.error("Unhandled exception for %s: %s", request.url.path, exc, exc_info=True)
+    logger.error("Unhandled exception for %s: %s",
+                 request.url.path, exc, exc_info=True)
     return JSONResponse(
         status_code=500,
         content={
-            "error": str(exc), 
-            "err_type": str(repr(exc)), 
+            "error": str(exc),
+            "err_type": str(repr(exc)),
             "trace": traceback.format_exc() if settings.is_development else "hidden"
         },
     )
@@ -118,8 +120,8 @@ async def root():
 async def ping():
     """Simple ping endpoint for load balancer health checks"""
     return {
-        "msg": "pong", 
-        "commit": settings.GIT_COMMIT, 
+        "msg": "pong",
+        "commit": settings.GIT_COMMIT,
         "build_time": settings.BUILD_TIME_MOSCOW,
         "service": settings.PROJECT_NAME
     }
@@ -129,10 +131,10 @@ async def ping():
 async def list_exercises():
     """List available exercise configurations"""
     from app.cv.metrics_storage import MetricsStorage
-    
+
     storage = MetricsStorage(settings.metrics_dir)
     available_exercises = storage.list_available_exercises_v2()
-    
+
     return {
         "available_exercises": available_exercises,
         "v2_semantic_configs": [name for name, version in available_exercises.items() if version == "2.0"],
@@ -145,12 +147,13 @@ async def list_exercises():
 async def get_exercise_config(exercise_name: str):
     """Get configuration for a specific exercise"""
     from app.cv.metrics_storage import MetricsStorage
-    
+
     storage = MetricsStorage(settings.metrics_dir)
-    
+
     try:
         # Try v2.0 first
-        config = storage.get_metrics_for_exercise_v2(f"{exercise_name}-v2.json")
+        config = storage.get_metrics_for_exercise_v2(
+            f"{exercise_name}-v2.json")
         return {
             "exercise": exercise_name,
             "version": "2.0",
@@ -162,7 +165,7 @@ async def get_exercise_config(exercise_name: str):
             config = storage.get_metrics_for_exercise(exercise_name)
             return {
                 "exercise": exercise_name,
-                "version": "1.0", 
+                "version": "1.0",
                 "config": config
             }
         except Exception as e:
@@ -179,7 +182,7 @@ async def get_exercise_config(exercise_name: str):
 async def get_documentation():
     """API documentation"""
     return get_swagger_ui_html(
-        openapi_url="/openapi.json", 
+        openapi_url="/openapi.json",
         title=meta.title + " " + meta.metadata
     )
 
@@ -188,8 +191,8 @@ async def get_documentation():
 async def openapi():
     """OpenAPI schema"""
     return get_openapi(
-        title=meta.title, 
-        version=settings.RELEASE_VER + " " + meta.metadata, 
+        title=meta.title,
+        version=settings.RELEASE_VER + " " + meta.metadata,
         routes=app.routes
     )
 
@@ -199,9 +202,9 @@ def run_fastapi_server():
     import uvicorn
     try:
         uvicorn.run(
-            app, 
-            host="0.0.0.0", 
-            port=8001, 
+            app,
+            host="0.0.0.0",
+            port=8000,
             log_level="info",
             access_log=not settings.is_production
         )
@@ -211,16 +214,17 @@ def run_fastapi_server():
 
 def main():
     """Main entry point - Universal Quality Processor as primary worker with API server"""
-    logger.info("Starting tisit-performance-svc v3.0 - Universal Quality Assessment System")
+    logger.info(
+        "Starting tisit-performance-svc v3.0 - Universal Quality Assessment System")
 
     # Start FastAPI server in background thread (API is secondary)
     api_thread = threading.Thread(target=run_fastapi_server, daemon=True)
     api_thread.start()
-    logger.info("API Server started on http://0.0.0.0:8001")
-    
+    logger.info("API Server started on http://0.0.0.0:8000")
+
     # Give API server time to start
     time.sleep(2)
-    
+
     # Start Universal Quality Processor in main thread (primary worker)
     logger.info("Starting Universal Quality Processor in main thread")
     try:
