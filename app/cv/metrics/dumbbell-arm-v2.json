@@ -1,0 +1,288 @@
+{
+  "exercise_name": "dumbbell-arm",
+  "version": "2.0",
+  "description": "Dumbbell bicep curl exercise with semantic error taxonomy",
+  
+  "landmark_features": {
+    "dominant_side_detection": {
+      "points": ["wrist", "wrist"],
+      "method": "y_position_comparison"
+    },
+    "required_landmarks": {
+      "left": ["shoulder", "elbow", "wrist"],
+      "right": ["shoulder", "elbow", "wrist"],
+      "center": ["nose"]
+    }
+  },
+  
+  "angle_definitions": [
+    {
+      "name": "elbow_angle",
+      "description": "Primary angle for exercise progression tracking",
+      "calculation": {
+        "point1": "shoulder",
+        "point2": "wrist", 
+        "ref_point": "elbow",
+        "type": "standard"
+      },
+      "semantic_importance": "primary"
+    },
+    {
+      "name": "shoulder_angle",
+      "description": "Form control angle for body positioning",
+      "calculation": {
+        "point1": "shoulder",
+        "point2": "elbow",
+        "type": "vertical",
+        "direction": "down"
+      },
+      "semantic_importance": "secondary"
+    }
+  ],
+  
+  "finite_state_machine": {
+    "beginner": {
+      "states": [
+        {
+          "id": "s1",
+          "name": "rest_position",
+          "description": "Starting/resting position with arms extended",
+          "condition": "elbow_angle < 70",
+          "exercise_phase": "rest",
+          "coaching_focus": "preparation"
+        },
+        {
+          "id": "s2", 
+          "name": "lifting_phase",
+          "description": "Active lifting of weight towards shoulders",
+          "condition": "elbow_angle >= 70 and elbow_angle < 110",
+          "exercise_phase": "concentric",
+          "coaching_focus": "technique"
+        },
+        {
+          "id": "s3",
+          "name": "lowering_phase", 
+          "description": "Controlled lowering of weight",
+          "condition": "elbow_angle >= 110",
+          "exercise_phase": "eccentric",
+          "coaching_focus": "control"
+        }
+      ],
+      "success_sequence": ["s1", "s2", "s3", "s1"],
+      "transition_rules": {
+        "valid_transitions": {
+          "s1": ["s2"],
+          "s2": ["s3", "s1"],
+          "s3": ["s1", "s2"]
+        },
+        "invalid_penalty": "form_deviation"
+      }
+    },
+    "pro": {
+      "states": [
+        {
+          "id": "s1",
+          "name": "rest_position",
+          "description": "Starting/resting position with stricter form requirements",
+          "condition": "elbow_angle > 110",
+          "exercise_phase": "rest",
+          "coaching_focus": "precision"
+        },
+        {
+          "id": "s2",
+          "name": "lifting_phase",
+          "description": "Controlled lifting with increased range requirement", 
+          "condition": "elbow_angle <= 110 and elbow_angle > 60",
+          "exercise_phase": "concentric",
+          "coaching_focus": "power_technique"
+        },
+        {
+          "id": "s3",
+          "name": "lowering_phase",
+          "description": "Slow controlled eccentric with full range",
+          "condition": "elbow_angle <= 60", 
+          "exercise_phase": "eccentric",
+          "coaching_focus": "time_under_tension"
+        }
+      ],
+      "success_sequence": ["s1", "s2", "s3", "s1"]
+    }
+  },
+  
+  "error_taxonomy": {
+    "safety_violations": {
+      "extreme_positioning": {
+        "code_prefix": "SAFETY_EXTREME_POSITION",
+        "description": "Extreme arm positioning that could cause injury",
+        "states_applicable": ["all"],
+        "immediate_intervention": true,
+        "coaching_priority": "critical",
+        "semantic_category": "safety_concern",
+        "detection": {
+          "angle": "elbow_angle",
+          "threshold_type": "range_safety",
+          "safe_range": [20, 160],
+          "severity_levels": {
+            "critical": {"range": [0, 15], "priority": "immediate"},
+            "major": {"range": [160, 180], "priority": "high"}
+          }
+        }
+      }
+    },
+    
+    "technique_violations": {
+      "range_of_motion": {
+        "code_prefix": "TECHNIQUE_ROM",
+        "description": "Insufficient or excessive range of motion",
+        "states_applicable": ["s2", "s3"],
+        "coaching_priority": "high",
+        "semantic_category": "technical_issue",
+        "state_specific_detection": {
+          "s2": {
+            "angle": "elbow_angle",
+            "description": "Insufficient lifting range in concentric phase",
+            "optimal_range": [70, 110],
+            "severity_levels": {
+              "minor": {"range": [65, 115], "priority": "medium", "code_suffix": "MINOR_DEVIATION"},
+              "major": {"range": [50, 130], "priority": "high", "code_suffix": "MAJOR_DEVIATION"}
+            }
+          },
+          "s3": {
+            "angle": "elbow_angle", 
+            "description": "Insufficient lowering range in eccentric phase",
+            "optimal_range": [110, 140],
+            "severity_levels": {
+              "minor": {"range": [105, 145], "priority": "medium", "code_suffix": "MINOR_DEVIATION"},
+              "major": {"range": [90, 160], "priority": "high", "code_suffix": "MAJOR_DEVIATION"}
+            }
+          }
+        }
+      },
+      
+      "speed_control": {
+        "code_prefix": "TECHNIQUE_SPEED", 
+        "description": "Movement speed and control issues",
+        "states_applicable": ["s2", "s3"],
+        "coaching_priority": "medium",
+        "semantic_category": "technical_issue",
+        "detection": {
+          "method": "state_duration_analysis",
+          "optimal_durations": {
+            "s2": {"min": 1.0, "max": 3.0},
+            "s3": {"min": 1.5, "max": 4.0}
+          },
+          "severity_levels": {
+            "too_fast": {"priority": "medium", "code_suffix": "TOO_RAPID"},
+            "too_slow": {"priority": "low", "code_suffix": "TOO_SLOW"}
+          }
+        }
+      }
+    },
+    
+    "form_violations": {
+      "elbow_isolation": {
+        "code_prefix": "FORM_ELBOW_ISOLATION",
+        "description": "Maintaining proper elbow positioning during movement",
+        "states_applicable": ["s2", "s3"],
+        "coaching_priority": "medium", 
+        "semantic_category": "form_deviation",
+        "detection": {
+          "angle": "elbow_angle",
+          "description": "Elbow should stay in proper position during exercise",
+          "state_specific_thresholds": {
+            "s2": {
+              "optimal_range": [70, 110],
+              "severity_levels": {
+                "minor": {"range": [60, 120], "priority": "low"},
+                "major": {"range": [40, 140], "priority": "medium"}
+              }
+            },
+            "s3": {
+              "optimal_range": [110, 140],
+              "severity_levels": {
+                "minor": {"range": [100, 150], "priority": "low"},
+                "major": {"range": [90, 160], "priority": "medium"}
+              }
+            }
+          }
+        }
+      }
+    },
+    
+    "execution_issues": {
+      "state_stagnation": {
+        "code_prefix": "EXECUTION_STAGNATION",
+        "description": "Lack of progression or movement stagnation",
+        "states_applicable": ["all"],
+        "coaching_priority": "low",
+        "semantic_category": "execution_problem",
+        "detection": {
+          "method": "temporal_analysis",
+          "max_duration_per_state": {
+            "s1": 8.0,
+            "s2": 5.0, 
+            "s3": 6.0
+          },
+          "severity_levels": {
+            "prolonged": {"priority": "low", "code_suffix": "PROLONGED"},
+            "excessive": {"priority": "medium", "code_suffix": "EXCESSIVE"}
+          }
+        }
+      }
+    }
+  },
+  
+  "coaching_configuration": {
+    "feedback_intervals": {
+      "immediate_attention": 0,
+      "high_priority": 2,
+      "medium_priority": 4, 
+      "low_priority": 6
+    },
+    
+    "semantic_mapping": {
+      "safety_concern": {
+        "urgency": "immediate",
+        "intervention_type": "stop_and_correct",
+        "llm_context": "safety_first"
+      },
+      "technical_issue": {
+        "urgency": "high",
+        "intervention_type": "technique_guidance", 
+        "llm_context": "skill_development"
+      },
+      "form_deviation": {
+        "urgency": "medium",
+        "intervention_type": "form_correction",
+        "llm_context": "movement_quality"
+      },
+      "execution_problem": {
+        "urgency": "low", 
+        "intervention_type": "motivation_guidance",
+        "llm_context": "encouragement"
+      }
+    },
+    
+    "progressive_complexity": {
+      "beginner": {
+        "focus_areas": ["safety", "basic_technique"],
+        "tolerance_multiplier": 1.2
+      },
+      "pro": {
+        "focus_areas": ["precision", "advanced_technique", "optimization"],
+        "tolerance_multiplier": 0.8
+      }
+    }
+  },
+  
+  "metadata": {
+    "created_date": "2024-01-09",
+    "last_modified": "2024-01-09",
+    "version_notes": "Semantic taxonomy redesign for LLM integration",
+    "validation_schema": "exercise_config_v2",
+    "compatibility": {
+      "min_processor_version": "2.0",
+      "supported_models": ["contextual_quality_processor"]
+    }
+  }
+}

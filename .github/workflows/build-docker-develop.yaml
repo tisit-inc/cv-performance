@@ -1,0 +1,55 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches: [main, dev]
+
+jobs:
+  lint-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff
+
+      - name: Run Ruff linter
+        run: ruff check .
+
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: Get repo name
+        id: get_repo_name
+        run: |
+          repo_name=$(echo $GITHUB_REPOSITORY | cut -d'/' -f2)
+          echo "Repo name is $repo_name"
+          echo "::set-output name=repo::$repo_name"
+
+      - name: Get current time in Moscow (UTC+3)
+        id: get_time
+        run: |
+          current_time=$(TZ=Europe/Moscow date +"%Y-%m-%d %H:%M:%S")
+          echo "Current time in Moscow is $current_time"
+          echo "::set-output name=build_time_moscow::$current_time"
+
+      - name: build images
+        run: docker build --build-arg BUILD_TIME_MOSCOW="${{ steps.get_time.outputs.build_time_moscow }}" --build-arg GIT_COMMIT=${{ github.sha }} -t tisit/${{ steps.get_repo_name.outputs.repo }}:${{ github.ref_name }} .
+
+      - name: push
+        run: |
+          docker login -u tisit -p ${{ secrets.DOCKERHUB_TOKEN }}
+          docker push tisit/${{ steps.get_repo_name.outputs.repo }}:${{ github.ref_name }}
