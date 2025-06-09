@@ -1,0 +1,201 @@
+{
+  "exercise_name": "push-up",
+  "version": "2.0", 
+  "description": "Push-up exercise with full-body semantic error taxonomy",
+  
+  "landmark_features": {
+    "dominant_side_detection": {
+      "points": ["wrist", "wrist"],
+      "method": "symmetry_analysis"
+    },
+    "required_landmarks": {
+      "left": ["shoulder", "elbow", "wrist", "hip", "knee"],
+      "right": ["shoulder", "elbow", "wrist", "hip", "knee"],
+      "center": ["nose"]
+    }
+  },
+  
+  "angle_definitions": [
+    {
+      "name": "arm_angle",
+      "description": "Primary pushing angle for exercise progression",
+      "calculation": {
+        "point1": "shoulder",
+        "point2": "wrist",
+        "ref_point": "elbow", 
+        "type": "standard"
+      },
+      "semantic_importance": "primary"
+    },
+    {
+      "name": "back_angle",
+      "description": "Core stability and body alignment angle",
+      "calculation": {
+        "point1": "shoulder",
+        "point2": "hip",
+        "type": "vertical",
+        "direction": "down"
+      },
+      "semantic_importance": "safety_critical"
+    },
+    {
+      "name": "offset_angle",
+      "description": "Lateral body stability monitoring",
+      "calculation": {
+        "point1": "left_shoulder", 
+        "point2": "right_shoulder",
+        "ref_point": "nose",
+        "type": "standard"
+      },
+      "semantic_importance": "safety_critical"
+    }
+  ],
+  
+  "finite_state_machine": {
+    "beginner": {
+      "states": [
+        {
+          "id": "s1",
+          "name": "up_position",
+          "description": "Arms extended, body in plank position",
+          "condition": "arm_angle > 160",
+          "exercise_phase": "isometric_hold",
+          "coaching_focus": "stability"
+        },
+        {
+          "id": "s2",
+          "name": "descending_phase", 
+          "description": "Controlled descent towards ground",
+          "condition": "arm_angle <= 160 and arm_angle > 90",
+          "exercise_phase": "eccentric",
+          "coaching_focus": "control"
+        },
+        {
+          "id": "s3",
+          "name": "bottom_position",
+          "description": "Lowest position with chest near ground",
+          "condition": "arm_angle <= 90",
+          "exercise_phase": "transition",
+          "coaching_focus": "range_depth"
+        }
+      ],
+      "success_sequence": ["s1", "s2", "s3", "s2", "s1"]
+    }
+  },
+  
+  "error_taxonomy": {
+    "safety_violations": {
+      "spinal_alignment": {
+        "code_prefix": "SAFETY_SPINE",
+        "description": "Spinal alignment and core stability issues",
+        "states_applicable": ["all"],
+        "immediate_intervention": true,
+        "coaching_priority": "critical",
+        "semantic_category": "safety_concern",
+        "detection": {
+          "angle": "back_angle",
+          "threshold_type": "deviation_from_straight",
+          "severity_levels": {
+            "warning": {"threshold": 15, "priority": "high"},
+            "critical": {"threshold": 25, "priority": "immediate"}
+          }
+        }
+      },
+      
+      "lateral_instability": {
+        "code_prefix": "SAFETY_LATERAL",
+        "description": "Side-to-side balance and stability",
+        "states_applicable": ["all"],
+        "immediate_intervention": false,
+        "coaching_priority": "high",
+        "semantic_category": "safety_concern",
+        "detection": {
+          "angle": "offset_angle",
+          "severity_levels": {
+            "minor": {"threshold": 20, "priority": "medium"},
+            "major": {"threshold": 35, "priority": "high"}
+          }
+        }
+      }
+    },
+    
+    "technique_violations": {
+      "range_of_motion": {
+        "code_prefix": "TECHNIQUE_ROM",
+        "description": "Insufficient depth or excessive range",
+        "states_applicable": ["s2", "s3"],
+        "coaching_priority": "high",
+        "semantic_category": "technical_issue",
+        "state_specific_detection": {
+          "s2": {
+            "angle": "arm_angle",
+            "description": "Descent control and range",
+            "optimal_range": [90, 160],
+            "severity_levels": {
+              "shallow": {"range": [120, 160], "priority": "high", "code_suffix": "INSUFFICIENT_DEPTH"},
+              "excessive": {"range": [60, 90], "priority": "medium", "code_suffix": "OVER_EXTENSION"}
+            }
+          },
+          "s3": {
+            "angle": "arm_angle",
+            "description": "Bottom position depth achievement",
+            "optimal_range": [75, 90],
+            "severity_levels": {
+              "insufficient": {"range": [90, 120], "priority": "high", "code_suffix": "INCOMPLETE_DESCENT"}
+            }
+          }
+        }
+      }
+    },
+    
+    "form_violations": {
+      "core_engagement": {
+        "code_prefix": "FORM_CORE",
+        "description": "Core stability and body line maintenance",
+        "states_applicable": ["all"],
+        "coaching_priority": "medium",
+        "semantic_category": "form_deviation",
+        "detection": {
+          "angle": "back_angle",
+          "description": "Body line straightness and core activation",
+          "state_specific_thresholds": {
+            "s1": {
+              "optimal_range": [170, 185],
+              "severity_levels": {
+                "sagging": {"range": [150, 170], "priority": "high", "code_suffix": "SAGGING_HIPS"},
+                "piking": {"range": [185, 200], "priority": "medium", "code_suffix": "ELEVATED_HIPS"}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  
+  "coaching_configuration": {
+    "feedback_intervals": {
+      "immediate_attention": 0,
+      "high_priority": 2,
+      "medium_priority": 3,
+      "low_priority": 5
+    },
+    
+    "semantic_mapping": {
+      "safety_concern": {
+        "urgency": "immediate",
+        "intervention_type": "form_reset",
+        "llm_context": "injury_prevention"
+      },
+      "technical_issue": {
+        "urgency": "high", 
+        "intervention_type": "technique_refinement",
+        "llm_context": "skill_building"
+      },
+      "form_deviation": {
+        "urgency": "medium",
+        "intervention_type": "body_awareness",
+        "llm_context": "postural_correction"
+      }
+    }
+  }
+}
