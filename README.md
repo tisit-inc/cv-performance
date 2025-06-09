@@ -6,3 +6,5 @@
 2. Universal Processor → Quix Streams pipeline
 3. Semantic Analysis → Error taxonomy processing
 4. Coaching Feedback → `performance-feedback` topic
+
+Тык
