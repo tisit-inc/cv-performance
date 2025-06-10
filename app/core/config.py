@@ -2,9 +2,9 @@ import os
 import pathlib
 import ssl
 from functools import lru_cache
-from typing import Optional, Literal
+from typing import Optional
 
-from pydantic import Field, field_validator, model_validator, computed_field
+from pydantic import computed_field, field_validator, model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -98,6 +98,10 @@ class KafkaSettings(BaseAppSettings):
     KAFKA_INPUT_TOPIC: str = "performance-input"
     KAFKA_OUTPUT_TOPIC: str = "performance-feedback"
 
+    # LLM Topics
+    KAFKA_LLM_INPUT_TOPIC: str = "llm-coaching-input"
+    KAFKA_LLM_OUTPUT_TOPIC: str = "llm-coaching-output"
+
     # Kafka security
     KAFKA_SECURITY_PROTOCOL: str | None = None  # PLAINTEXT, SASL_PLAINTEXT, SASL_SSL, SSL
     KAFKA_SSL_CA: str | None = None
@@ -170,6 +174,20 @@ class KafkaSettings(BaseAppSettings):
         return v.strip()
 
 
+class LLMSettings(BaseAppSettings):
+    """LLM configuration settings"""
+
+    # Gemini API
+    GEMINI_API_KEY: str | None = None
+    GEMINI_MODEL: str = "gemini-2.5-flash-preview-05-20"
+
+    # Generation settings
+    LLM_TEMPERATURE: float = 0.3
+    LLM_MAX_OUTPUT_TOKENS: int = 500
+    LLM_TOP_P: float = 0.8
+    LLM_TOP_K: int = 40
+
+
 class MonitoringSettings(BaseAppSettings):
     """Monitoring and health check settings"""
 
@@ -177,7 +195,7 @@ class MonitoringSettings(BaseAppSettings):
     HEALTH_CHECK_TIMEOUT: float = 5.0
 
 
-class Settings(AppSettings, BuildSettings, PathSettings, KafkaSettings, MonitoringSettings):
+class Settings(AppSettings, BuildSettings, PathSettings, KafkaSettings, LLMSettings, MonitoringSettings):
     """Main settings class that combines all configuration groups"""
 
     # Legacy property mappings for compatibility

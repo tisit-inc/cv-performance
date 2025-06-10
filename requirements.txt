@@ -13,6 +13,6 @@ numpy
 aiofiles
 
 google-generativeai
+google-genai==1.19.0
 quixstreams
 uvloop==0.21.0
-google-genai==1.19.0

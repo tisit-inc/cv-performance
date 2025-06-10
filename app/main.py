@@ -1,6 +1,7 @@
-import traceback
+import multiprocessing
 import threading
 import time
+import traceback
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 
@@ -13,6 +14,7 @@ from fastapi.responses import JSONResponse
 
 from app.core.config import get_settings
 from app.routers.health import router as health_router
+from app.services.llm_analyzer import LLMAnalyzer
 from app.services.performance_service import PerformanceService
 from app.utils.logger import setup_logger
 
@@ -164,13 +166,26 @@ def run_fastapi_server():
     import uvicorn
 
     try:
-        uvicorn.run(app, host=settings.API_HOST, port=settings.API_PORT, log_level="info", access_log=not settings.is_production)
+        uvicorn.run(
+            app, host=settings.API_HOST, port=settings.API_PORT, log_level="info", access_log=not settings.is_production
+        )
     except Exception as e:
         logger.error("FastAPI server error: %s", e)
 
 
+def run_llm_service():
+    """Run LLM Analyzer Service in separate process"""
+    try:
+        logger = setup_logger(__name__)
+        logger.info("Starting LLM Analyzer Service in separate process")
+        llm_analyzer = LLMAnalyzer()
+        llm_analyzer.run()
+    except Exception as e:
+        logger = setup_logger(__name__)
+        logger.exception("LLM Service error: %s", e)
+
+
 def main():
-    """Main entry point - Performance Service as primary worker with API server"""
     logger.info("Starting cv-performance service...")
 
     # start FastAPI server in background thread (API is secondary)
@@ -180,6 +195,15 @@ def main():
 
     # API server time to start
     time.sleep(2)
+
+    # Start LLM Service in separate process
+
+    llm_process = multiprocessing.Process(target=run_llm_service)
+    llm_process.start()
+    logger.info("LLM Service started in separate process (PID: %s)", llm_process.pid)
+
+    # Start Performance Service in main thread
+    time.sleep(1)  # Give LLM service time to initialize
     logger.info("Starting Performance Service in main thread")
     try:
         performance_service = PerformanceService()
@@ -189,6 +213,14 @@ def main():
     except Exception as e:
         logger.exception("Performance service error: %s", e)
     finally:
+        # Graceful shutdown of LLM process
+        if llm_process.is_alive():
+            logger.info("Terminating LLM Service process...")
+            llm_process.terminate()
+            llm_process.join(timeout=5)
+            if llm_process.is_alive():
+                logger.warning("Force killing LLM Service process")
+                llm_process.kill()
         logger.info("Application shutdown complete")
 
 

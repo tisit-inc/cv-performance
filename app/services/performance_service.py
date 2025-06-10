@@ -34,6 +34,11 @@ class PerformanceService:
             config=TopicConfig(num_partitions=3, replication_factor=1)
         )
 
+        # LLM Topics
+        self.llm_input_topic = self.stream_manager.get_topic(
+            self.settings.KAFKA_LLM_INPUT_TOPIC, config=TopicConfig(num_partitions=1, replication_factor=1)
+        )
+
     def create_universal_pipeline(self):
         """Создание универсального pipeline для любого упражнения"""
         self.logger.info("Creating universal exercise quality pipeline")
@@ -64,11 +69,12 @@ class PerformanceService:
 
         # Финальная подготовка для LLM
         sdf = sdf.apply(self._prepare_llm_semantic_input)
-        
+
         # Логирование отправки
         sdf = sdf.apply(self._log_output_message)
 
-        sdf = sdf.to_topic(self.output_topic)
+        # Отправка в оба топика: алгоритмический анализ + LLM обработка
+        sdf = sdf.apply(self._send_to_both_topics)
 
         return sdf
 
@@ -795,14 +801,27 @@ class PerformanceService:
 
         return llm_input
 
+    def _send_to_both_topics(self, llm_input: Dict[str, Any]) -> Dict[str, Any]:
+        """Send data to both algorithmic feedback and LLM topics"""
+
+        # Send to LLM topic for further processing
+        with self.stream_manager.app.get_producer() as producer:
+            producer.produce(topic=self.llm_input_topic.name, value=json.dumps(llm_input).encode('utf-8'))
+
+        # Continue with algorithmic feedback topic
+        with self.stream_manager.app.get_producer() as producer:
+            producer.produce(topic=self.output_topic.name, value=json.dumps(llm_input).encode('utf-8'))
+
+        return llm_input
+
     def _log_output_message(self, llm_input: Dict[str, Any]) -> Dict[str, Any]:
         """Логирование отправляемого сообщения"""
         self.logger.info(
-            "Sending to LLM topic - Session: %s, Exercise: %s, Urgency: %s, Patterns: %d", 
+            "Sending to LLM topic - Session: %s, Exercise: %s, Urgency: %s, Patterns: %d",
             llm_input.get('session_id', 'unknown'),
             llm_input.get('exercise_type', 'unknown'),
             llm_input.get('llm_processing_hints', {}).get('urgency_level', 'unknown'),
-            llm_input.get('llm_processing_hints', {}).get('coaching_complexity', 0)
+            llm_input.get('llm_processing_hints', {}).get('coaching_complexity', 0),
         )
         return llm_input
 
