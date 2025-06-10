@@ -15,20 +15,16 @@ async def health_check() -> Dict[str, Any]:
     checks = {}
     settings = get_settings()
     
-    # Check Quix Streams connectivity (simplified check)
+    # Check Quix Streams connectivity through manager
     try:
-        # Simple check - verify Kafka bootstrap servers are reachable
-        import socket
-        host, port = settings.kafka_bootstrap_servers.split(':')[0], int(settings.kafka_bootstrap_servers.split(':')[1])
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(3)
-        result = sock.connect_ex((host, port))
-        sock.close()
-        checks["kafka"] = result == 0
-        logger.debug("Kafka connectivity check passed")
+        from app.core.managers import QuixStreamsManager
+        stream_manager = QuixStreamsManager()
+        health_result = stream_manager.health_check()
+        checks["kafka"] = health_result["status"] == "healthy"
+        logger.debug("Quix Streams health check: %s", health_result["status"])
     except Exception as e:
         checks["kafka"] = False
-        logger.warning("Kafka connectivity check failed: %s", e)
+        logger.warning("Quix Streams health check failed: %s", e)
     
     # Check if Universal Quality Processor is responsive
     # (This is a simplified check - in real scenario you'd check processor state)

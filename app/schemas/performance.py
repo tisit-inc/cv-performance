@@ -1,13 +1,12 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
 from datetime import datetime
 
 
 class Landmark(BaseModel):
     x: float
     y: float
-    z: Optional[float] = None
-    vis: Optional[float] = None
+    z: float | None = None
+    vis: float | None = None
 
 
 class AngleMetric(BaseModel):
@@ -20,11 +19,11 @@ class AngleMetric(BaseModel):
 
 class DominantSide(BaseModel):
     side: str
-    probability: Optional[float]
+    probability: float | None
 
 
 class Metrics(BaseModel):
-    angles: List[AngleMetric]
+    angles: list[AngleMetric]
     dominant_side: DominantSide
 
 
@@ -34,9 +33,7 @@ class PerformanceInput(BaseModel):
     exercise: str
     video_duration: float
     session_uuid: str
-    landmarks: list[Landmark] = Field(
-        ..., description="Detected pose landmarks (COCO format)"
-    )
+    landmarks: list[Landmark] = Field(..., description="Detected pose landmarks (COCO format)")
     metrics: Metrics = Field(..., description="Calculated exercise metrics")
 
     # TODO: set to non optional after adding to the pipeline

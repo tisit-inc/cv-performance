@@ -13,7 +13,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from app.services.universal_quality_processor import UniversalQualityProcessor
+from app.services.performance_service import PerformanceService
 from app.utils.logger import setup_logger
 
 
@@ -24,15 +24,15 @@ def main():
     logger = setup_logger(__name__, level=logging.DEBUG)
     
     logger.info("=" * 60)
-    logger.info("🔧 DEBUG MODE: Universal Quality Processor v3.0")
+    logger.info("🔧 DEBUG MODE: Performance Service v3.0")
     logger.info("=" * 60)
     logger.info("Running processor standalone without API server")
     logger.info("Press Ctrl+C to stop")
     logger.info("-" * 60)
     
     try:
-        # Initialize and run processor
-        processor = UniversalQualityProcessor()
+        # Initialize and run performance service
+        processor = PerformanceService()
         logger.info("✅ Processor initialized successfully")
         logger.info("🚀 Starting stream processing...")
         

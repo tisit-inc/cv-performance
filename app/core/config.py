@@ -1,9 +1,10 @@
 import os
 import pathlib
+import ssl
 from functools import lru_cache
-from typing import Optional
+from typing import Optional, Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator, computed_field
 from pydantic_settings import BaseSettings
 
 
@@ -28,8 +29,11 @@ class AppSettings(BaseAppSettings):
 
     ENV: str = Environment.DEV
     DEBUG: bool = False
-    RELEASE_VER: str = "3.0.0"
-    PROJECT_NAME: str = "tisit-performance-svc"
+    RELEASE_VER: str = "0.1.0"
+    PROJECT_NAME: str = "cv-performance"
+
+    API_HOST: str = "0.0.0.0"
+    API_PORT: int = 8000
 
     @property
     def is_development(self) -> bool:
@@ -45,18 +49,20 @@ class AppSettings(BaseAppSettings):
 
 
 class BuildSettings(BaseAppSettings):
-    """Build-related settings"""
+    """Build-related settings from Docker build args"""
 
     BUILD_TIME_MOSCOW: str = "unknown"
     GIT_COMMIT: str = "unknown"
+    PYTHONUNBUFFERED: str = "1"
+    PYTHONPATH: str = "/app"
 
 
 class PathSettings(BaseAppSettings):
     """Path-related settings"""
 
     PROJECT_ROOT: str = get_project_root()
-    METRICS_DIR: str = "app/cv/metrics"
-    LOGS_DIR: str = "app/logs"
+    METRICS_DIR: str = f"{get_project_root()}/app/cv/metrics"
+    LOGS_DIR: str = f"{get_project_root()}/app/logs"
 
     # Legacy compatibility
     app_log_directory: str = "app/logs"
@@ -67,17 +73,93 @@ class PathSettings(BaseAppSettings):
 
 
 class KafkaSettings(BaseAppSettings):
-    """Kafka configuration settings"""
+    """Kafka configuration settings for Quix Streams"""
 
-    KAFKA_BOOTSTRAP_SERVERS: str = "localhost:9092"
-    KAFKA_GROUP_ID: str = "performance-group-universal"
+    # Kafka common settings
+    KAFKA_CLIENT_ID: str = "performance-worker"
+    KAFKA_BOOTSTRAP_SERVERS: str = "localhost:9092"  # comma-separated list of brokers
+
+    # Kafka consumer settings - group IDs following <env>.<domain>.<component> notation
+    KAFKA_GROUP_ID: str | None = None
+    KAFKA_AUTO_OFFSET_RESET: str = "earliest"
+    KAFKA_ENABLE_AUTO_COMMIT: bool = True
+    KAFKA_MAX_POLL_RECORDS: int = 500
+    KAFKA_SESSION_TIMEOUT_MS: int = 30000
+    KAFKA_HEARTBEAT_INTERVAL_MS: int = 3000
+
+    # Kafka producer settings
+    KAFKA_ACKS: str = "all"  # 0, 1, all
+    KAFKA_BATCH_SIZE: int = 16384
+    KAFKA_LINGER_MS: int = 5
+    KAFKA_COMPRESSION_TYPE: str = "snappy"
+    KAFKA_RETRIES: int = 3
+
+    # Topics
     KAFKA_INPUT_TOPIC: str = "performance-input"
     KAFKA_OUTPUT_TOPIC: str = "performance-feedback"
 
-    # Connection settings
-    KAFKA_MAX_POLL_RECORDS: int = 500
-    KAFKA_SESSION_TIMEOUT_MS: int = 10000
-    KAFKA_HEARTBEAT_INTERVAL_MS: int = 3000
+    # Kafka security
+    KAFKA_SECURITY_PROTOCOL: str | None = None  # PLAINTEXT, SASL_PLAINTEXT, SASL_SSL, SSL
+    KAFKA_SSL_CA: str | None = None
+    KAFKA_SSL_CERT: str | None = None
+    KAFKA_SSL_KEY: str | None = None
+    KAFKA_SASL_MECHANISM: str | None = None  # PLAIN, SCRAM-SHA-256, SCRAM-SHA-512, OAUTHBEARER
+    KAFKA_SASL_USERNAME: str | None = None
+    KAFKA_SASL_PASSWORD: str | None = None
+
+    # OAuth 2 (SASL/OAUTHBEARER)
+    KAFKA_OAUTH_TOKEN_URL: str | None = None  # https://keycloak/realm/…/token
+    KAFKA_OAUTH_CLIENT_ID: str | None = None
+    KAFKA_OAUTH_CLIENT_SECRET: str | None = None
+    KAFKA_OAUTH_SCOPE: str | None = None
+
+    # Quix Streams application settings
+    KAFKA_COMMIT_INTERVAL_SECONDS: float = 5.0
+    KAFKA_AUTO_CREATE_TOPICS: bool = True
+    KAFKA_TOPIC_CREATE_TIMEOUT_SECONDS: float = 60.0
+    KAFKA_AUTO_COMMIT_INTERVAL_MS: int = 1000
+    KAFKA_HEALTH_CHECK_TIMEOUT_SECONDS: float = 3.0
+
+    @property
+    def kafka_group_id(self) -> str:
+        """Group ID following <env>.<domain>.<component> notation"""
+        return self.KAFKA_GROUP_ID or f"{self.ENV.lower()}.performance.quality-processor"
+
+    @model_validator(mode="after")
+    def auto_fill_protocol(self):
+        if self.KAFKA_SECURITY_PROTOCOL is None:
+            self.KAFKA_SECURITY_PROTOCOL = "PLAINTEXT" if self.ENV in {"dev", "test"} else "SASL_SSL"
+        return self
+
+    @computed_field
+    @property
+    def has_ssl_config(self) -> bool:
+        return bool(self.KAFKA_SSL_CA and self.KAFKA_SSL_CERT and self.KAFKA_SSL_KEY)
+
+    def get_ssl_context(self) -> ssl.SSLContext | None:
+        """Create SSL context for Kafka clients"""
+        if not self.has_ssl_config:
+            return None
+        context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        context.load_cert_chain(certfile=self.KAFKA_SSL_CERT, keyfile=self.KAFKA_SSL_KEY)
+        context.load_verify_locations(cafile=self.KAFKA_SSL_CA)
+        if self.ENV in {"dev", "test"}:
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
+        return context
+
+    def get_oauth_params(self) -> dict[str, str]:
+        """Get OAuth parameters for SASL/OAUTHBEARER authentication"""
+        if self.KAFKA_SASL_MECHANISM != "OAUTHBEARER":
+            return {}
+        params = {
+            "sasl_oauth_token_endpoint_url": self.KAFKA_OAUTH_TOKEN_URL,
+            "sasl_oauth_client_id": self.KAFKA_OAUTH_CLIENT_ID,
+            "sasl_oauth_client_secret": self.KAFKA_OAUTH_CLIENT_SECRET,
+        }
+        if self.KAFKA_OAUTH_SCOPE:
+            params["sasl_oauth_scope"] = self.KAFKA_OAUTH_SCOPE
+        return params
 
     @field_validator("KAFKA_BOOTSTRAP_SERVERS")
     @classmethod
@@ -95,9 +177,7 @@ class MonitoringSettings(BaseAppSettings):
     HEALTH_CHECK_TIMEOUT: float = 5.0
 
 
-class Settings(
-    AppSettings, BuildSettings, PathSettings, KafkaSettings, MonitoringSettings
-):
+class Settings(AppSettings, BuildSettings, PathSettings, KafkaSettings, MonitoringSettings):
     """Main settings class that combines all configuration groups"""
 
     # Legacy property mappings for compatibility
@@ -115,7 +195,7 @@ class Settings(
 
     @property
     def kafka_group_id(self) -> str:
-        return self.KAFKA_GROUP_ID
+        return self.KAFKA_GROUP_ID or f"{self.ENV.lower()}.performance.quality-processor"
 
     @property
     def kafka_input_topic(self) -> str:
