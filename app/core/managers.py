@@ -27,7 +27,7 @@ class QuixStreamsManager:
         """Create and configure Quix Streams Application"""
 
         app_config = {
-            "broker_address": self.settings.KAFKA_BROKERS,
+            "broker_address": self.settings.brokers_list,
             "consumer_group": self.settings.kafka_group_id,
             "auto_offset_reset": self.settings.KAFKA_AUTO_OFFSET_RESET,
             "commit_interval": self.settings.KAFKA_COMMIT_INTERVAL_SECONDS,
@@ -51,26 +51,22 @@ class QuixStreamsManager:
         }
 
         # Configure security settings if available
-        security_protocol = getattr(
-            self.settings, 'KAFKA_SECURITY_PROTOCOL', None)
+        security_protocol = getattr(self.settings, 'KAFKA_SECURITY_PROTOCOL', None)
         if security_protocol:
             consumer_config["security.protocol"] = security_protocol
             producer_config["security.protocol"] = security_protocol
 
-            sasl_mechanism = getattr(
-                self.settings, 'KAFKA_SASL_MECHANISM', None)
+            sasl_mechanism = getattr(self.settings, 'KAFKA_SASL_MECHANISM', None)
             if sasl_mechanism:
                 consumer_config["sasl.mechanism"] = sasl_mechanism
                 producer_config["sasl.mechanism"] = sasl_mechanism
 
-                sasl_username = getattr(
-                    self.settings, 'KAFKA_SASL_USERNAME', None)
+                sasl_username = getattr(self.settings, 'KAFKA_SASL_USERNAME', None)
                 if sasl_username:
                     consumer_config["sasl.username"] = sasl_username
                     producer_config["sasl.username"] = sasl_username
 
-                sasl_password = getattr(
-                    self.settings, 'KAFKA_SASL_PASSWORD', None)
+                sasl_password = getattr(self.settings, 'KAFKA_SASL_PASSWORD', None)
                 if sasl_password:
                     consumer_config["sasl.password"] = sasl_password
                     producer_config["sasl.password"] = sasl_password
@@ -93,8 +89,7 @@ class QuixStreamsManager:
             producer_config.update(oauth_params)
 
         def on_consumer_error(exc: Exception, message, logger) -> bool:
-            logger.error("Consumer error: %s, offset: %s", exc,
-                         getattr(message, 'offset', 'unknown'))
+            logger.error("Consumer error: %s, offset: %s", exc, getattr(message, 'offset', 'unknown'))
             # Return False to propagate critical errors, True to ignore recoverable ones
             return False
 
@@ -140,8 +135,7 @@ class QuixStreamsManager:
         """Get or create a topic with configuration"""
         if topic_name not in self._topics:
             self.logger.info("Creating topic: %s", topic_name)
-            self._topics[topic_name] = self.app.topic(
-                topic_name, **topic_config)
+            self._topics[topic_name] = self.app.topic(topic_name, **topic_config)
         return self._topics[topic_name]
 
     def get_input_topic(self, **config) -> Topic:
@@ -188,12 +182,11 @@ class QuixStreamsManager:
     def health_check(self) -> dict[str, object]:
         try:
             with self.get_producer() as producer:
-                metadata = producer.list_topics(
-                    timeout=self.settings.KAFKA_HEALTH_CHECK_TIMEOUT_SECONDS)
+                metadata = producer.list_topics(timeout=self.settings.KAFKA_HEALTH_CHECK_TIMEOUT_SECONDS)
 
             return {
                 "status": "healthy",
-                "broker_address": self.settings.KAFKA_BROKERS,
+                "broker_address": self.settings.brokers_list,
                 "consumer_group": self.settings.kafka_group_id,
                 "topics_available": len(metadata.topics) if metadata else 0,
                 "application_initialized": self._app is not None,
@@ -202,6 +195,6 @@ class QuixStreamsManager:
             return {
                 "status": "unhealthy",
                 "error": str(e),
-                "broker_address": self.settings.KAFKA_BROKERS,
+                "broker_address": self.settings.brokers_list,
                 "application_initialized": self._app is not None,
             }
