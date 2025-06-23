@@ -7,7 +7,7 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data
+      - volumes/redis:/data
 
   # cv-performance-service:
   #   build:
@@ -25,6 +25,3 @@ services:
   #     - ./logs:/app/logs
   #   depends_on:
   #     - redis
-
-volumes:
-  redis_data:
