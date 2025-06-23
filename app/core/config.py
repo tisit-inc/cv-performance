@@ -21,7 +21,8 @@ def get_project_root() -> str:
 class BaseAppSettings(BaseSettings):
     """Base settings class with common configuration"""
 
-    model_config = {"case_sensitive": True, "env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
+    model_config = {"case_sensitive": True, "env_file": ".env",
+                    "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
 class AppSettings(BaseAppSettings):
@@ -77,9 +78,9 @@ class KafkaSettings(BaseAppSettings):
 
     # Kafka common settings
     KAFKA_CLIENT_ID: str = "performance-worker"
-    KAFKA_BOOTSTRAP_SERVERS: str = "localhost:9092"  # comma-separated list of brokers
+    KAFKA_BROKERS: str = "kafka-1:9092,kafka-2:9092,kafka-3:9092"
 
-    # Kafka consumer settings - group IDs following <env>.<domain>.<component> notation
+    # Consumer group IDs following <env>.<domain>.<component> notation
     KAFKA_GROUP_ID: str | None = None
     KAFKA_AUTO_OFFSET_RESET: str = "earliest"
     KAFKA_ENABLE_AUTO_COMMIT: bool = True
@@ -103,11 +104,11 @@ class KafkaSettings(BaseAppSettings):
     KAFKA_LLM_OUTPUT_TOPIC: str = "llm-coaching-output"
 
     # Kafka security
-    KAFKA_SECURITY_PROTOCOL: str | None = None  # PLAINTEXT, SASL_PLAINTEXT, SASL_SSL, SSL
+    KAFKA_SECURITY_PROTOCOL: str | None = "SASL_PLAINTEXT"
     KAFKA_SSL_CA: str | None = None
     KAFKA_SSL_CERT: str | None = None
     KAFKA_SSL_KEY: str | None = None
-    KAFKA_SASL_MECHANISM: str | None = None  # PLAIN, SCRAM-SHA-256, SCRAM-SHA-512, OAUTHBEARER
+    KAFKA_SASL_MECHANISM: str | None = "SCRAM-SHA-512"
     KAFKA_SASL_USERNAME: str | None = None
     KAFKA_SASL_PASSWORD: str | None = None
 
@@ -132,7 +133,8 @@ class KafkaSettings(BaseAppSettings):
     @model_validator(mode="after")
     def auto_fill_protocol(self):
         if self.KAFKA_SECURITY_PROTOCOL is None:
-            self.KAFKA_SECURITY_PROTOCOL = "PLAINTEXT" if self.ENV in {"dev", "test"} else "SASL_SSL"
+            self.KAFKA_SECURITY_PROTOCOL = "SASL_PLAINTEXT" if self.ENV in {
+                "dev", "test"} else "SASL_SSL"
         return self
 
     @computed_field
@@ -145,7 +147,8 @@ class KafkaSettings(BaseAppSettings):
         if not self.has_ssl_config:
             return None
         context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-        context.load_cert_chain(certfile=self.KAFKA_SSL_CERT, keyfile=self.KAFKA_SSL_KEY)
+        context.load_cert_chain(
+            certfile=self.KAFKA_SSL_CERT, keyfile=self.KAFKA_SSL_KEY)
         context.load_verify_locations(cafile=self.KAFKA_SSL_CA)
         if self.ENV in {"dev", "test"}:
             context.check_hostname = False
@@ -165,12 +168,18 @@ class KafkaSettings(BaseAppSettings):
             params["sasl_oauth_scope"] = self.KAFKA_OAUTH_SCOPE
         return params
 
-    @field_validator("KAFKA_BOOTSTRAP_SERVERS")
+    @computed_field
+    @property
+    def brokers_list(self) -> list[str]:
+        """Get list of Kafka brokers"""
+        return [broker.strip() for broker in self.KAFKA_BROKERS.split(",")]
+
+    @field_validator("KAFKA_BROKERS")
     @classmethod
     def validate_bootstrap_servers(cls, v: str) -> str:
         """Validate Kafka bootstrap servers format"""
         if not v or not v.strip():
-            raise ValueError("KAFKA_BOOTSTRAP_SERVERS cannot be empty")
+            raise ValueError("KAFKA_BROKERS cannot be empty")
         return v.strip()
 
 
@@ -191,7 +200,7 @@ class LLMSettings(BaseAppSettings):
 class MonitoringSettings(BaseAppSettings):
     """Monitoring and health check settings"""
 
-    SERVICE_PROMETHEUS_PORT: Optional[int] = None
+    SERVICE_PROMETHEUS_PORT: int | None = None
     HEALTH_CHECK_TIMEOUT: float = 5.0
 
 
@@ -209,7 +218,7 @@ class Settings(AppSettings, BuildSettings, PathSettings, KafkaSettings, LLMSetti
 
     @property
     def kafka_bootstrap_servers(self) -> str:
-        return self.KAFKA_BOOTSTRAP_SERVERS
+        return self.KAFKA_BROKERS
 
     @property
     def kafka_group_id(self) -> str:
