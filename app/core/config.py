@@ -95,8 +95,8 @@ class KafkaSettings(BaseAppSettings):
     KAFKA_RETRIES: int = 3
 
     # Topics
-    KAFKA_INPUT_TOPIC: str = "performance-input"
-    KAFKA_OUTPUT_TOPIC: str = "performance-feedback"
+    KAFKA_INPUT_TOPIC: str = "cv.inference.results"
+    KAFKA_OUTPUT_TOPIC: str = "cv.performance.results"
 
     # LLM Topics
     KAFKA_LLM_INPUT_TOPIC: str = "llm-coaching-input"
@@ -182,7 +182,7 @@ class LLMSettings(BaseAppSettings):
     GEMINI_MODEL: str = "gemini-2.5-flash-preview-05-20"
 
     # Generation settings
-    LLM_TEMPERATURE: float = 0.3
+    LLM_TEMPERATURE: float = 0.5
     LLM_MAX_OUTPUT_TOKENS: int = 500
     LLM_TOP_P: float = 0.8
     LLM_TOP_K: int = 40

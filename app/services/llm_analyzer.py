@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 
 from google import genai
+from google.genai import types
 from quixstreams.models import TopicConfig
 
 from app.core.config import get_settings
@@ -82,21 +83,40 @@ class LLMAnalyzer:
         try:
             session_id = llm_input.get('session_id', 'unknown')
             exercise_type = llm_input.get('exercise_type', 'unknown')
+            
+            # Debug: log input structure
+            focus_areas = llm_input.get('coaching_focus_areas', {})
+            self.logger.info("LLM Input - Session: %s, Focus areas keys: %s", 
+                           session_id, list(focus_areas.keys()))
 
             # Create prompt from semantic data
             prompt = self._create_coaching_prompt(llm_input)
+            
+            # Debug: log prompt
+            self.logger.info("LLM Prompt for session %s: %s", session_id, prompt[:500] + "..." if len(prompt) > 500 else prompt)
 
             # Generate response with Gemini
+            # response = self.gemini_client.models.generate_content(
+            #     model=self.settings.GEMINI_MODEL,
+            #     contents=prompt,
+            #     config=types.GenerateContentConfig(
+            #         temperature=self.settings.LLM_TEMPERATURE,
+            #         max_output_tokens=self.settings.LLM_MAX_OUTPUT_TOKENS,
+            #         top_p=self.settings.LLM_TOP_P,
+            #         top_k=self.settings.LLM_TOP_K,
+            #     ),
+            # )
+            
+            # Simple fallback version (uncomment if complex config fails):
             response = self.gemini_client.models.generate_content(
                 model=self.settings.GEMINI_MODEL,
-                contents=[{"role": "user", "parts": [{"text": prompt}]}],
-                config={
-                    "temperature": self.settings.LLM_TEMPERATURE,
-                    "max_output_tokens": self.settings.LLM_MAX_OUTPUT_TOKENS,
-                    "top_p": self.settings.LLM_TOP_P,
-                    "top_k": self.settings.LLM_TOP_K,
-                },
+                contents=prompt,
             )
+
+            # Debug: log response
+            self.logger.info("LLM Response - Session: %s, Response length: %d chars, Content: %s", 
+                           session_id, len(response.text) if response.text else 0, 
+                           response.text[:100] + "..." if response.text and len(response.text) > 100 else response.text)
 
             # Format output message
             coaching_output = {

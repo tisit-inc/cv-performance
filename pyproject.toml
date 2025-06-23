@@ -1,0 +1,99 @@
+[project]
+name = "cv-performance"
+version = "0.1.0"
+description = "metrics -> feedback"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "TISIT"}
+authors = [
+    {name = "tisit-tech, programat", email = "tech@tisit.com"}
+]
+
+dependencies = [
+    "aiofiles",
+    "docutils",
+    "fastapi",
+    "google-generativeai",
+    "google-genai==1.19.0",
+    "mock",
+    "numpy",
+    "protobuf",
+    "pydantic",
+    "pydantic-settings",
+    "python-multipart",
+    "quixstreams",
+    "uvicorn",
+    "uvloop==0.21.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-asyncio",
+]
+dev = [
+    "ruff",
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+exclude = [
+    ".git",
+    "__pycache__",
+]
+
+[tool.ruff.lint]
+select = [
+    "A",        # (flake8-builtins) Check for python builtins being used as variables or parameters
+    "B",        # (flake8-bugbear) Bugbear finding likely bugs and design problems in your program
+    "C4",       # (flake8-comprehensions) Checks for common mistakes in comprehensions
+    "E",        # (pycodestyle) PEP8 errors
+    "F",        # (pyflakes) analyzes programs and detects various errors
+    "G",        # (flake8-logging-format) Validate (lack of) logging format strings
+    'I',        # (flake8-import-order) Check import order
+    "S",        # (flake8-bandit) Security
+    "W",        # (pycodestyle) PEP8 warnings
+    "C90",      # (McCabe) Checks for functions with a high McCabe complexity.
+    "PLE",      # (pylint) error subset
+    "FAST003",  # (FastAPI) unused path parameter
+    "ASYNC",    # (flake8-async) Сhecks for async functions
+    "UP017",    # (pyupgrade) Checks for uses of datetime.timezone.utc
+    "UP045",    # (pyupgrade) Check for typing.Optional annotations that can be rewritten based on PEP 604 syntax (object | None)
+    "FURB",     # (furb) A tool for refurbishing and modernizing Python codebases
+]
+
+# flake bugbear and ruff specigfic rules
+extend-select = [
+    "B9",
+    "RUF006",   # https://docs.astral.sh/ruff/rules/asyncio-dangling-task/
+    "RUF008",   # Checks for mutable default values in dataclass attributes
+    "RUF017",   # https://docs.astral.sh/ruff/rules/quadratic-list-summation/
+    "RUF034",   # Checks for useless if-else conditions with identical arms
+]
+
+
+ignore = [
+    "A004",     # an import statement is shadowing a Python builtin
+    "A005",     # a module is shadowing a Python builtin module
+    "B011",     # do not assert False
+    "B904",     # within an `except` clause, raise exceptions with `raise ... from err`
+    "E501",     # line too long (using B950 instead - more flexible)
+    "E731",     # do not assign a lambda expression, use a def
+    "S104",     # hardcoded bindings to all network interfaces (0.0.0.0) (irrelevant due proxy use)
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 20
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]  # unused imports
+
+# formatting rules
+[tool.ruff.format]
+quote-style = "preserve"        # preserve the original quote style
+docstring-code-format = true    # format code in docstrings
