@@ -27,7 +27,7 @@ class QuixStreamsManager:
         """Create and configure Quix Streams Application"""
 
         app_config = {
-            "broker_address": self.settings.kafka_bootstrap_servers,
+            "broker_address": self.settings.KAFKA_BROKERS,
             "consumer_group": self.settings.kafka_group_id,
             "auto_offset_reset": self.settings.KAFKA_AUTO_OFFSET_RESET,
             "commit_interval": self.settings.KAFKA_COMMIT_INTERVAL_SECONDS,
@@ -186,7 +186,7 @@ class QuixStreamsManager:
 
             return {
                 "status": "healthy",
-                "broker_address": self.settings.kafka_bootstrap_servers,
+                "broker_address": self.settings.KAFKA_BROKERS,
                 "consumer_group": self.settings.kafka_group_id,
                 "topics_available": len(metadata.topics) if metadata else 0,
                 "application_initialized": self._app is not None,
@@ -195,6 +195,6 @@ class QuixStreamsManager:
             return {
                 "status": "unhealthy",
                 "error": str(e),
-                "broker_address": self.settings.kafka_bootstrap_servers,
+                "broker_address": self.settings.KAFKA_BROKERS,
                 "application_initialized": self._app is not None,
             }
